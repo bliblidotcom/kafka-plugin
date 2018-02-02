@@ -16,12 +16,15 @@
 
 package com.blibli.oss.kafka.producer;
 
+import com.blibli.oss.kafka.interceptor.KafkaProducerInterceptor;
+import com.blibli.oss.kafka.interceptor.events.ProducerEvent;
 import com.blibli.oss.kafka.producer.impl.KafkaProducerImpl;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Builder;
 import lombok.Data;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,10 +33,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.springframework.cloud.sleuth.Tracer;
+import org.springframework.context.ApplicationContext;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.util.concurrent.SettableListenableFuture;
 
+import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.Assert.assertSame;
@@ -44,6 +49,8 @@ import static org.mockito.Mockito.*;
  */
 public class KafkaProducerTest {
 
+  public static final String KEY = "key";
+
   @Rule
   public MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -51,16 +58,22 @@ public class KafkaProducerTest {
   private ObjectMapper objectMapper;
 
   @Mock
+  private ApplicationContext applicationContext;
+
+  @Mock
+  private KafkaProducerInterceptor kafkaProducerInterceptor;
+
+  @Mock
   private KafkaTemplate<String, String> kafkaTemplate;
 
   @Mock
   private Tracer tracer;
 
-  @InjectMocks
-  private KafkaProducerImpl merchantProducer;
-
   @Mock
   private SendResult<String, String> sendResult;
+
+  @InjectMocks
+  private KafkaProducerImpl kafkaProducer;
 
   private Request request;
 
@@ -81,7 +94,7 @@ public class KafkaProducerTest {
   public void testSendSuccess() throws Exception {
     mockKafkaTemplateWithSuccessResult();
 
-    SendResult<String, String> value = merchantProducer.send("TOPIC_NAME", request)
+    SendResult<String, String> value = kafkaProducer.send("TOPIC_NAME", request)
         .toBlocking().value();
 
     assertSame(sendResult, value);
@@ -91,7 +104,7 @@ public class KafkaProducerTest {
     SettableListenableFuture<SendResult<String, String>> future = new SettableListenableFuture<>();
     future.set(sendResult);
 
-    when(kafkaTemplate.send(anyString(), anyString(), anyString()))
+    when(kafkaTemplate.send(any(ProducerRecord.class)))
         .thenReturn(future);
   }
 
@@ -99,7 +112,7 @@ public class KafkaProducerTest {
   public void testSendError() throws Exception {
     mockKafkaTemplateWithExceptionResult();
 
-    merchantProducer.send("TOPIC_NAME", request)
+    kafkaProducer.send("TOPIC_NAME", request)
         .toBlocking().value();
   }
 
@@ -107,7 +120,7 @@ public class KafkaProducerTest {
     SettableListenableFuture<SendResult<String, String>> future = new SettableListenableFuture<>();
     future.setException(new NullPointerException());
 
-    when(kafkaTemplate.send(anyString(), anyString(), anyString()))
+    when(kafkaTemplate.send(any(ProducerRecord.class)))
         .thenReturn(future);
   }
 
@@ -115,13 +128,29 @@ public class KafkaProducerTest {
   public void testSendErrorBecuaseParsingJson() throws Exception {
     mockObjectMapperErrorParsing();
 
-    merchantProducer.send("TOPIC_NAME", request)
+    kafkaProducer.send("TOPIC_NAME", request)
         .toBlocking().value();
   }
 
   private void mockObjectMapperErrorParsing() throws JsonProcessingException {
     when(objectMapper.writeValueAsString(anyObject()))
         .thenThrow(new JsonParseException(null, "Parsing Error"));
+  }
+
+  @Test
+  public void testSendSuccessWithInterceptor() throws Exception {
+    mockKafkaTemplateWithSuccessResult();
+    when(applicationContext.getBeansOfType(KafkaProducerInterceptor.class))
+        .thenReturn(Collections.singletonMap(KEY, kafkaProducerInterceptor));
+
+    kafkaProducer.setApplicationContext(applicationContext);
+    kafkaProducer.afterPropertiesSet();
+    SendResult<String, String> value = kafkaProducer.send("TOPIC_NAME", request)
+        .toBlocking().value();
+
+    assertSame(sendResult, value);
+    verify(kafkaProducerInterceptor, times(1))
+        .beforeSend(any(ProducerEvent.class));
   }
 
   @Data
