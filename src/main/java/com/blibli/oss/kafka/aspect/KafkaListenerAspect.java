@@ -16,6 +16,7 @@
 
 package com.blibli.oss.kafka.aspect;
 
+import com.blibli.oss.kafka.interceptor.InterceptorUtil;
 import com.blibli.oss.kafka.interceptor.KafkaConsumerInterceptor;
 import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
 import com.blibli.oss.kafka.properties.KafkaProperties;
@@ -31,9 +32,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 
 /**
  * @author Eko Kurniawan Khannedy
@@ -48,7 +47,7 @@ public class KafkaListenerAspect implements ApplicationContextAware, Initializin
 
   private KafkaProperties.ModelProperties modelProperties;
 
-  private Collection<KafkaConsumerInterceptor> kafkaConsumerInterceptors = Collections.emptyList();
+  private List<KafkaConsumerInterceptor> kafkaConsumerInterceptors;
 
   public KafkaListenerAspect(ObjectMapper objectMapper, KafkaProperties.ModelProperties modelProperties) {
     this.objectMapper = objectMapper;
@@ -57,10 +56,7 @@ public class KafkaListenerAspect implements ApplicationContextAware, Initializin
 
   @Override
   public void afterPropertiesSet() {
-    Map<String, KafkaConsumerInterceptor> map = applicationContext.getBeansOfType(KafkaConsumerInterceptor.class);
-    if (map != null && !map.isEmpty()) {
-      kafkaConsumerInterceptors = map.values();
-    }
+    kafkaConsumerInterceptors = InterceptorUtil.getKafkaConsumerInterceptors(applicationContext);
   }
 
   @Override

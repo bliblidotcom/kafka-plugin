@@ -20,6 +20,7 @@ import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
 import com.blibli.oss.kafka.interceptor.events.ProducerEvent;
 import com.blibli.oss.kafka.properties.KafkaProperties;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.Ordered;
 
 /**
  * @author Eko Kurniawan Khannedy
@@ -46,5 +47,10 @@ public class LogInterceptor implements KafkaConsumerInterceptor, KafkaProducerIn
       log.info("Receive from topic {} with message {}", event.getTopic(), event.getValue());
     }
     return false;
+  }
+
+  @Override
+  public int getOrder() {
+    return Ordered.LOWEST_PRECEDENCE;
   }
 }

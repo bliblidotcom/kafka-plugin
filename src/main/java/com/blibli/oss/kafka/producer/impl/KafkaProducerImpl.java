@@ -16,6 +16,7 @@
 
 package com.blibli.oss.kafka.producer.impl;
 
+import com.blibli.oss.kafka.interceptor.InterceptorUtil;
 import com.blibli.oss.kafka.interceptor.KafkaProducerInterceptor;
 import com.blibli.oss.kafka.interceptor.events.ProducerEvent;
 import com.blibli.oss.kafka.producer.KafkaProducer;
@@ -33,6 +34,7 @@ import rx.Single;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 
@@ -48,7 +50,7 @@ public class KafkaProducerImpl implements KafkaProducer, ApplicationContextAware
 
   private ApplicationContext applicationContext;
 
-  private Collection<KafkaProducerInterceptor> interceptors = Collections.emptyList();
+  private List<KafkaProducerInterceptor> kafkaProducerInterceptors;
 
   public KafkaProducerImpl(ObjectMapper objectMapper, KafkaTemplate<String, String> kafkaTemplate) {
     this.objectMapper = objectMapper;
@@ -57,10 +59,7 @@ public class KafkaProducerImpl implements KafkaProducer, ApplicationContextAware
 
   @Override
   public void afterPropertiesSet() throws Exception {
-    Map<String, KafkaProducerInterceptor> map = applicationContext.getBeansOfType(KafkaProducerInterceptor.class);
-    if (map != null && !map.isEmpty()) {
-      interceptors = map.values();
-    }
+    kafkaProducerInterceptors = InterceptorUtil.getKafkaProducerInterceptors(applicationContext);
   }
 
   @Override
@@ -93,7 +92,7 @@ public class KafkaProducerImpl implements KafkaProducer, ApplicationContextAware
   }
 
   private void fireBeforeSend(ProducerEvent event) {
-    for (KafkaProducerInterceptor interceptor : interceptors) {
+    for (KafkaProducerInterceptor interceptor : kafkaProducerInterceptors) {
       try {
         interceptor.beforeSend(event);
       } catch (Throwable throwable) {

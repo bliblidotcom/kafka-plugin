@@ -31,6 +31,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.springframework.cloud.sleuth.Span;
 import org.springframework.cloud.sleuth.Tracer;
+import org.springframework.core.Ordered;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -103,6 +104,11 @@ public class SleuthSpanInterceptorTest {
     sleuthSpanInterceptor.beforeConsume(consumerEvent);
 
     verify(tracer, times(1)).continueSpan(any(Span.class));
+  }
+
+  @Test
+  public void testGetOrder() {
+    assertEquals(Ordered.HIGHEST_PRECEDENCE, sleuthSpanInterceptor.getOrder());
   }
 
   @Data

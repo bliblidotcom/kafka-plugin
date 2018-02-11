@@ -93,6 +93,8 @@ public class KafkaProducerTest {
   @Test
   public void testSendSuccess() throws Exception {
     mockKafkaTemplateWithSuccessResult();
+    kafkaProducer.setApplicationContext(applicationContext);
+    kafkaProducer.afterPropertiesSet();
 
     SendResult<String, String> value = kafkaProducer.send("TOPIC_NAME", request)
         .toBlocking().value();
