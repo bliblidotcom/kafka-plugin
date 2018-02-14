@@ -20,7 +20,7 @@
 
   <groupId>com.blibli.oss</groupId>
   <artifactId>kafka-plugin</artifactId>
-  <version>0.0.3-SNAPSHOT</version>
+  <version>0.0.3</version>
   <packaging>jar</packaging>
 
   <name>kafka-plugin</name>
@@ -29,7 +29,7 @@
   <scm>
     <connection>scm:git:git@github.com:bliblidotcom/kafka-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:bliblidotcom/kafka-plugin.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>kafka-plugin-0.0.3</tag>
   </scm>
 
   <parent>
