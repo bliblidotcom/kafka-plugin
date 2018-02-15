@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.cloud.sleuth.Tracer;
+import org.springframework.cloud.sleuth.autoconfig.SleuthProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -38,8 +39,9 @@ public class KafkaSleuthAutoConfiguration {
   @Bean
   public SleuthSpanInterceptor sleuthSpanInterceptor(@Autowired KafkaProperties kafkaProperties,
                                                      @Autowired ObjectMapper objectMapper,
-                                                     @Autowired Tracer tracer) {
-    return new SleuthSpanInterceptor(kafkaProperties.getModel(), objectMapper, tracer);
+                                                     @Autowired Tracer tracer,
+                                                     @Autowired SleuthProperties sleuthProperties) {
+    return new SleuthSpanInterceptor(kafkaProperties.getModel(), objectMapper, tracer, sleuthProperties);
   }
 
 }
