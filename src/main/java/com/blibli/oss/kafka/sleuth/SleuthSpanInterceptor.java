@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cloud.sleuth.Tracer;
+import org.springframework.cloud.sleuth.autoconfig.SleuthProperties;
 import org.springframework.core.Ordered;
 
 import java.beans.PropertyDescriptor;
@@ -46,10 +47,14 @@ public class SleuthSpanInterceptor implements KafkaConsumerInterceptor, KafkaPro
 
   private Tracer tracer;
 
-  public SleuthSpanInterceptor(KafkaProperties.ModelProperties modelProperties, ObjectMapper objectMapper, Tracer tracer) {
+  private SleuthProperties sleuthProperties;
+
+  public SleuthSpanInterceptor(KafkaProperties.ModelProperties modelProperties, ObjectMapper objectMapper,
+                               Tracer tracer, SleuthProperties sleuthProperties) {
     this.modelProperties = modelProperties;
     this.objectMapper = objectMapper;
     this.tracer = tracer;
+    this.sleuthProperties = sleuthProperties;
   }
 
   @Override
@@ -78,8 +83,14 @@ public class SleuthSpanInterceptor implements KafkaConsumerInterceptor, KafkaPro
         JsonParser jsonParser = objectMapper.treeAsTokens(spanNode);
         Map<String, String> span = objectMapper.readValue(jsonParser, new TypeReference<Map<String, String>>() {
         });
-        SleuthHelper.continueSpan(tracer, span);
-        log.debug("Continue trace span {}", span);
+
+        if (sleuthProperties.isSupportsJoin()) {
+          SleuthHelper.joinSpan(tracer, span);
+          log.debug("Join trace span {}", span);
+        } else {
+          SleuthHelper.continueSpan(tracer, span);
+          log.debug("Continue trace span {}", span);
+        }
       }
     } catch (Throwable throwable) {
       log.error("Failed continue span", throwable);

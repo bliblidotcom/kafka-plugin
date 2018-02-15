@@ -33,6 +33,15 @@ public class SleuthHelper {
     }
   }
 
+  public static void joinSpan(Tracer tracer, Map<String, String> map) {
+    if (tracer != null && map != null && !map.isEmpty()) {
+      Span parent = fromMap(map);
+      if (parent != null) {
+        tracer.createSpan(parent.getName(), parent);
+      }
+    }
+  }
+
   public static Map<String, String> toMap(Span span) {
     if (span == null) {
       return Collections.emptyMap();
@@ -48,6 +57,7 @@ public class SleuthHelper {
         .map(String::valueOf)
         .collect(Collectors.toList());
 
+    map.put(Span.SPAN_NAME_NAME, span.getName());
     map.put(Span.PARENT_ID_NAME, String.join(",", parents));
     map.put(Span.TRACE_ID_NAME, String.valueOf(span.getTraceId()));
     map.put(Span.PROCESS_ID_NAME, span.getProcessId());
@@ -63,6 +73,7 @@ public class SleuthHelper {
 
   public static Span fromMap(Map<String, String> map) {
     return Span.builder()
+        .name(map.get(Span.SPAN_NAME_NAME))
         .parents(getParents(map.get(Span.PARENT_ID_NAME)))
         .traceId(Long.valueOf(map.get(Span.TRACE_ID_NAME)))
         .processId(map.get(Span.PROCESS_ID_NAME))
