@@ -17,11 +17,12 @@
 package com.blibli.oss.kafka.interceptor;
 
 import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
+import org.springframework.core.Ordered;
 
 /**
  * @author Eko Kurniawan Khannedy
  */
-public interface KafkaConsumerInterceptor {
+public interface KafkaConsumerInterceptor extends Ordered {
 
   /**
    * Invoked before consume message, if it return <code>true</code>, it will break the process.
@@ -51,6 +52,15 @@ public interface KafkaConsumerInterceptor {
    */
   default void afterFailedConsume(ConsumerEvent event, Throwable throwable) {
     // DO NOTHING
+  }
+
+  /**
+   * Get the order value of this object.
+   *
+   * @return default is 0
+   */
+  default int getOrder() {
+    return 0;
   }
 
 }

@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cloud.sleuth.Tracer;
+import org.springframework.core.Ordered;
 
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Method;
@@ -85,5 +86,10 @@ public class SleuthSpanInterceptor implements KafkaConsumerInterceptor, KafkaPro
     }
 
     return false;
+  }
+
+  @Override
+  public int getOrder() {
+    return Ordered.HIGHEST_PRECEDENCE;
   }
 }

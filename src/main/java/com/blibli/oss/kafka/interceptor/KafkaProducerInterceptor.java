@@ -17,11 +17,12 @@
 package com.blibli.oss.kafka.interceptor;
 
 import com.blibli.oss.kafka.interceptor.events.ProducerEvent;
+import org.springframework.core.Ordered;
 
 /**
  * @author Eko Kurniawan Khannedy
  */
-public interface KafkaProducerInterceptor {
+public interface KafkaProducerInterceptor extends Ordered {
 
   /**
    * Invoke before send message
@@ -30,6 +31,15 @@ public interface KafkaProducerInterceptor {
    */
   default void beforeSend(ProducerEvent event) {
     // DO NOTHING
+  }
+
+  /**
+   * Get the order value of this object.
+   *
+   * @return default is 0
+   */
+  default int getOrder() {
+    return 0;
   }
 
 }

@@ -19,6 +19,7 @@ package com.blibli.oss.kafka.interceptor;
 import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
 import com.blibli.oss.kafka.interceptor.events.ProducerEvent;
 import com.blibli.oss.kafka.properties.KafkaProperties;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,6 +27,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.springframework.core.Ordered;
 
 import static org.mockito.Mockito.*;
 
@@ -69,5 +71,10 @@ public class LogInterceptorTest {
 
     verify(producerEvent, times(1)).getTopic();
     verify(producerEvent, times(1)).getValue();
+  }
+
+  @Test
+  public void testGetOrder() {
+    Assert.assertEquals(Ordered.LOWEST_PRECEDENCE, logInterceptor.getOrder());
   }
 }
