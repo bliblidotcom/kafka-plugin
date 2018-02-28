@@ -16,6 +16,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.AsyncResult;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.mockito.Mockito.*;
@@ -25,6 +26,11 @@ import static org.mockito.Mockito.*;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = KafkaValidatorInterceptorTest.Application.class)
+@TestPropertySource(
+    properties = {
+        "kafka.plugin.feature.schema-validator=true"
+    }
+)
 public class KafkaValidatorInterceptorTest {
 
   @MockBean

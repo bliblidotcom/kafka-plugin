@@ -30,6 +30,8 @@ public class KafkaProperties {
 
   private ModelProperties model = new ModelProperties();
 
+  private FeatureProperties feature = new FeatureProperties();
+
   @Data
   public static class LogProperties {
 
@@ -49,6 +51,13 @@ public class KafkaProperties {
     private String identity = "eventId";
 
     private String trace = "span";
+
+  }
+
+  @Data
+  public static class FeatureProperties {
+
+    private boolean schemaValidator = false;
 
   }
 
