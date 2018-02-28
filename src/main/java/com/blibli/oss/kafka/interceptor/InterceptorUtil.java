@@ -1,6 +1,8 @@
 package com.blibli.oss.kafka.interceptor;
 
+import com.blibli.oss.kafka.error.KafkaException;
 import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
+import com.blibli.oss.kafka.interceptor.events.ProducerEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.OrderComparator;
@@ -17,6 +19,19 @@ import java.util.Map;
 @Slf4j
 public class InterceptorUtil {
 
+  public static void fireBeforeSend(List<KafkaProducerInterceptor> kafkaProducerInterceptors, ProducerEvent event) {
+    for (KafkaProducerInterceptor interceptor : kafkaProducerInterceptors) {
+      try {
+        interceptor.beforeSend(event);
+      } catch (Throwable throwable) {
+        log.error("Error while invoking interceptor", throwable);
+        if (throwable instanceof KafkaException) {
+          throw (KafkaException) throwable;
+        }
+      }
+    }
+  }
+
   public static boolean fireBeforeConsume(List<KafkaConsumerInterceptor> kafkaConsumerInterceptors, ConsumerEvent event) {
     for (KafkaConsumerInterceptor interceptor : kafkaConsumerInterceptors) {
       try {
@@ -25,6 +40,9 @@ public class InterceptorUtil {
         }
       } catch (Throwable throwable) {
         log.error("Error while invoke interceptor", throwable);
+        if (throwable instanceof KafkaException) {
+          throw (KafkaException) throwable;
+        }
       }
     }
     return false;
@@ -36,6 +54,9 @@ public class InterceptorUtil {
         interceptor.afterSuccessConsume(event);
       } catch (Throwable throwable) {
         log.error("Error while invoke interceptor", throwable);
+        if (throwable instanceof KafkaException) {
+          throw (KafkaException) throwable;
+        }
       }
     }
   }
@@ -46,6 +67,9 @@ public class InterceptorUtil {
         interceptor.afterFailedConsume(event, throwable);
       } catch (Throwable e) {
         log.error("Error while invoke interceptor", e);
+        if (throwable instanceof KafkaException) {
+          throw (KafkaException) throwable;
+        }
       }
     }
   }
