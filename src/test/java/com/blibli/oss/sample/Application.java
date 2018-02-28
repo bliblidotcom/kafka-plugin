@@ -18,17 +18,22 @@ package com.blibli.oss.sample;
 
 import com.blibli.oss.kafka.interceptor.KafkaConsumerDuplicateCheckInterceptor;
 import com.blibli.oss.kafka.producer.KafkaProducer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import rx.Observable;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Eko Kurniawan Khannedy
  */
+@EnableRetry
 @SpringBootApplication
 public class Application {
 
@@ -46,10 +52,10 @@ public class Application {
 
     Observable.interval(1, TimeUnit.SECONDS).forEach(aLong -> {
       Model model = Model.builder()
-          .name("Test")
+          .name(aLong.toString())
           .build();
 
-      kafkaProducer.send("hello", model).toBlocking().value();
+      kafkaProducer.send("hello_new", model).toBlocking().value();
     });
   }
 
@@ -76,9 +82,21 @@ public class Application {
   @Component
   public static class Listener {
 
-    @KafkaListener(topics = "hello")
-    public void onMessage(ConsumerRecord<String, String> record) {
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Retryable
+    @KafkaListener(topics = "hello_new")
+    public void onMessage(ConsumerRecord<String, String> record) throws IOException {
       log.info("Consume message {}", record.value());
+      Model model = objectMapper.readValue(record.value(), Model.class);
+
+      log.info("Number {}", Integer.valueOf(model.getName()) % 5 == 0);
+
+      if (Integer.valueOf(model.getName()) % 5 == 0) {
+        log.error("Error");
+        throw new RuntimeException("Error");
+      }
     }
 
   }

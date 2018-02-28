@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.blibli.oss.kafka.aspect;
+package com.blibli.oss.kafka.aop;
 
 import com.blibli.oss.kafka.interceptor.KafkaConsumerInterceptor;
 import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
@@ -44,11 +44,11 @@ import static org.mockito.Mockito.*;
  * @author Eko Kurniawan Khannedy
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = KafkaListenerAspectTest.Application.class)
+@SpringBootTest(classes = KafkaListenerAopTest.Application.class)
 @TestPropertySource(properties = {
-    "kafka.plugin.aspectj=true"
+    "kafka.plugin.aspectj=false"
 })
-public class KafkaListenerAspectTest {
+public class KafkaListenerAopTest {
 
   public static final String EVENT_ID = "EVENT_ID";
 

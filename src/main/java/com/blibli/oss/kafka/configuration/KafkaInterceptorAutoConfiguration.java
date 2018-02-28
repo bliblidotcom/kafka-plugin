@@ -42,7 +42,7 @@ public class KafkaInterceptorAutoConfiguration {
 
   @Bean
   public IdentityInterceptor identityInterceptor(@Autowired KafkaProperties kafkaProperties) {
-    return new IdentityInterceptor(kafkaProperties.getModel());
+    return new IdentityInterceptor(kafkaProperties);
   }
 
   @Bean

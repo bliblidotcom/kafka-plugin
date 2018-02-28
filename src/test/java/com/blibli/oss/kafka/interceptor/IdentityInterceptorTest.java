@@ -42,6 +42,9 @@ public class IdentityInterceptorTest {
   public MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Mock
+  private KafkaProperties kafkaProperties;
+
+  @Mock
   private KafkaProperties.ModelProperties modelProperties;
 
   @InjectMocks
@@ -57,6 +60,7 @@ public class IdentityInterceptorTest {
   @Before
   public void setUp() throws Exception {
     when(modelProperties.getIdentity()).thenReturn(EVENT_ID);
+    when(kafkaProperties.getModel()).thenReturn(modelProperties);
   }
 
   @Test

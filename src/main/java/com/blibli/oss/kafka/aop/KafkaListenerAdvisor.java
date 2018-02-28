@@ -14,42 +14,33 @@
  * limitations under the License.
  */
 
-package com.blibli.oss.kafka.properties;
+package com.blibli.oss.kafka.aop;
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.aopalliance.aop.Advice;
+import org.springframework.aop.Pointcut;
+import org.springframework.aop.support.AbstractPointcutAdvisor;
 
 /**
  * @author Eko Kurniawan Khannedy
  */
-@Data
-@ConfigurationProperties("kafka.plugin")
-public class KafkaProperties {
+public class KafkaListenerAdvisor extends AbstractPointcutAdvisor {
 
-  private LogProperties log = new LogProperties();
+  private KafkaListenerPointcut pointcut;
 
-  private ModelProperties model = new ModelProperties();
+  private KafkaListenerInterceptor interceptor;
 
-  @Data
-  public static class LogProperties {
-
-    private boolean beforeSend = true;
-
-    private boolean beforeConsume = true;
-
-    private boolean whenFailedSetEventId = true;
-
+  public KafkaListenerAdvisor(KafkaListenerPointcut pointcut, KafkaListenerInterceptor interceptor) {
+    this.pointcut = pointcut;
+    this.interceptor = interceptor;
   }
 
-  @Data
-  public static class ModelProperties {
-
-    private String routing = "routingId";
-
-    private String identity = "eventId";
-
-    private String trace = "span";
-
+  @Override
+  public Pointcut getPointcut() {
+    return pointcut;
   }
 
+  @Override
+  public Advice getAdvice() {
+    return interceptor;
+  }
 }
