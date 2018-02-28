@@ -18,6 +18,7 @@ import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.kafka.annotation.KafkaListener;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -82,12 +83,16 @@ public class KafkaListenerInterceptor implements MethodInterceptor, ApplicationC
       return false;
     }
 
-    return arguments[0] instanceof ConsumerRecord;
+    return Arrays.stream(invocation.getArguments())
+        .anyMatch(o -> o instanceof ConsumerRecord);
   }
 
   @SuppressWarnings("unchecked")
   private ConsumerRecord<String, String> getConsumerRecord(MethodInvocation invocation) {
-    return (ConsumerRecord<String, String>) invocation.getArguments()[0];
+    return (ConsumerRecord<String, String>) Arrays.stream(invocation.getArguments())
+        .filter(o -> o instanceof ConsumerRecord)
+        .findFirst()
+        .orElse(null);
   }
 
   private String getEventId(ConsumerRecord<String, String> record) {

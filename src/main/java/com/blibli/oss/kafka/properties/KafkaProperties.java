@@ -37,6 +37,8 @@ public class KafkaProperties {
 
     private boolean beforeConsume = true;
 
+    private boolean whenFailedSetEventId = true;
+
   }
 
   @Data

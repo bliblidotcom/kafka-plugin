@@ -21,7 +21,6 @@ import com.blibli.oss.kafka.interceptor.InterceptorUtil;
 import com.blibli.oss.kafka.interceptor.KafkaConsumerInterceptor;
 import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
 import com.blibli.oss.kafka.properties.KafkaProperties;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -33,6 +32,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -67,48 +67,42 @@ public class KafkaListenerAspect implements ApplicationContextAware, Initializin
 
   @Around(value = "@annotation(org.springframework.kafka.annotation.KafkaListener)")
   public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
-    if (joinPoint.getArgs().length == 0) {
-      return joinPoint.proceed(joinPoint.getArgs());
-    } else {
-      return aroundWithInterceptor(joinPoint);
-    }
-  }
-
-  private Object aroundWithInterceptor(ProceedingJoinPoint joinPoint) throws Throwable {
-    ConsumerRecord<String, String> record = getConsumerRecord(joinPoint.getArgs());
-    if (record != null) {
+    if (isConsumerRecordArgument(joinPoint)) {
+      ConsumerRecord<String, String> record = getConsumerRecord(joinPoint);
       ConsumerEvent event = KafkaHelper.toConsumerEvent(record, getEventId(record));
-      if (event != null) {
+      try {
         if (InterceptorUtil.fireBeforeConsume(kafkaConsumerInterceptors, event)) {
           return null; // cancel process
         } else {
-          try {
-            Object result = joinPoint.proceed(joinPoint.getArgs());
-            InterceptorUtil.fireAfterSuccessConsume(kafkaConsumerInterceptors, event);
-            return result;
-          } catch (Throwable throwable) {
-            InterceptorUtil.fireAfterErrorConsume(kafkaConsumerInterceptors, event, throwable);
-            throw throwable;
-          }
+          Object response = joinPoint.proceed(joinPoint.getArgs());
+          InterceptorUtil.fireAfterSuccessConsume(kafkaConsumerInterceptors, event);
+          return response;
         }
+      } catch (Throwable throwable) {
+        InterceptorUtil.fireAfterErrorConsume(kafkaConsumerInterceptors, event, throwable);
+        throw throwable;
       }
+    } else {
+      return joinPoint.proceed(joinPoint.getArgs());
     }
-
-    return joinPoint.proceed(joinPoint.getArgs());
   }
 
-  private ConsumerRecord<String, String> getConsumerRecord(Object[] objects) {
-    if (objects == null) {
-      return null;
+  private boolean isConsumerRecordArgument(ProceedingJoinPoint joinPoint) {
+    Object[] arguments = joinPoint.getArgs();
+    if (arguments == null || arguments.length == 0) {
+      return false;
     }
 
-    for (Object object : objects) {
-      if (object instanceof ConsumerRecord) {
-        return (ConsumerRecord<String, String>) object;
-      }
-    }
+    return Arrays.stream(joinPoint.getArgs())
+        .anyMatch(o -> o instanceof ConsumerRecord);
+  }
 
-    return null;
+  @SuppressWarnings("unchecked")
+  private ConsumerRecord<String, String> getConsumerRecord(ProceedingJoinPoint joinPoint) {
+    return (ConsumerRecord<String, String>) Arrays.stream(joinPoint.getArgs())
+        .filter(o -> o instanceof ConsumerRecord)
+        .findFirst()
+        .orElse(null);
   }
 
   private String getEventId(ConsumerRecord<String, String> record) {

@@ -32,15 +32,16 @@ import java.util.UUID;
 @Slf4j
 public class IdentityInterceptor implements KafkaProducerInterceptor {
 
-  private KafkaProperties.ModelProperties modelProperties;
+  private KafkaProperties kafkaProperties;
 
-  public IdentityInterceptor(KafkaProperties.ModelProperties modelProperties) {
-    this.modelProperties = modelProperties;
+  public IdentityInterceptor(KafkaProperties kafkaProperties) {
+    this.kafkaProperties = kafkaProperties;
   }
 
   @Override
   public void beforeSend(ProducerEvent event) {
-    PropertyDescriptor descriptor = BeanUtils.getPropertyDescriptor(event.getValue().getClass(), modelProperties.getIdentity());
+    PropertyDescriptor descriptor = BeanUtils.getPropertyDescriptor(event.getValue().getClass(),
+        kafkaProperties.getModel().getIdentity());
     if (descriptor != null) {
       writeIdentityId(event.getValue(), descriptor);
     }
@@ -54,7 +55,9 @@ public class IdentityInterceptor implements KafkaProducerInterceptor {
         method.invoke(message, eventId);
         log.debug("Inject event id {} to message", eventId);
       } catch (IllegalAccessException | InvocationTargetException e) {
-        log.warn("Error while write identity id", e);
+        if (kafkaProperties.getLog().isWhenFailedSetEventId()) {
+          log.warn("Error while write identity id", e);
+        }
       }
     }
   }

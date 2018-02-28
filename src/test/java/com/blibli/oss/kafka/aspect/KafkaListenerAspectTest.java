@@ -32,6 +32,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -44,6 +45,9 @@ import static org.mockito.Mockito.*;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = KafkaListenerAspectTest.Application.class)
+@TestPropertySource(properties = {
+    "kafka.plugin.aspectj=true"
+})
 public class KafkaListenerAspectTest {
 
   public static final String EVENT_ID = "EVENT_ID";
