@@ -16,6 +16,7 @@
 
 package com.blibli.oss.kafka.aspect;
 
+import com.blibli.oss.kafka.helper.KafkaHelper;
 import com.blibli.oss.kafka.interceptor.InterceptorUtil;
 import com.blibli.oss.kafka.interceptor.KafkaConsumerInterceptor;
 import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
@@ -76,17 +77,17 @@ public class KafkaListenerAspect implements ApplicationContextAware, Initializin
   private Object aroundWithInterceptor(ProceedingJoinPoint joinPoint) throws Throwable {
     ConsumerRecord<String, String> record = getConsumerRecord(joinPoint.getArgs());
     if (record != null) {
-      ConsumerEvent event = toConsumerEvent(record);
+      ConsumerEvent event = KafkaHelper.toConsumerEvent(record, getEventId(record));
       if (event != null) {
-        if (beforeConsume(event)) {
+        if (InterceptorUtil.fireBeforeConsume(kafkaConsumerInterceptors, event)) {
           return null; // cancel process
         } else {
           try {
             Object result = joinPoint.proceed(joinPoint.getArgs());
-            afterSuccessConsume(event);
+            InterceptorUtil.fireAfterSuccessConsume(kafkaConsumerInterceptors, event);
             return result;
           } catch (Throwable throwable) {
-            afterErrorConsume(event, throwable);
+            InterceptorUtil.fireAfterErrorConsume(kafkaConsumerInterceptors, event, throwable);
             throw throwable;
           }
         }
@@ -110,58 +111,8 @@ public class KafkaListenerAspect implements ApplicationContextAware, Initializin
     return null;
   }
 
-  private ConsumerEvent toConsumerEvent(ConsumerRecord<String, String> record) {
-    String evenId = getEventId(record.value());
-    return ConsumerEvent.builder()
-        .eventId(evenId)
-        .key(record.key())
-        .partition(record.partition())
-        .timestamp(record.timestamp())
-        .topic(record.topic())
-        .value(record.value())
-        .build();
+  private String getEventId(ConsumerRecord<String, String> record) {
+    return KafkaHelper.getEventId(record.value(), objectMapper, modelProperties);
   }
 
-  private String getEventId(String message) {
-    try {
-      JsonNode jsonNode = objectMapper.readTree(message);
-      return jsonNode.get(modelProperties.getIdentity()).asText();
-    } catch (Throwable throwable) {
-      log.error("Error while get event id", throwable);
-      return null;
-    }
-  }
-
-  private boolean beforeConsume(ConsumerEvent event) {
-    for (KafkaConsumerInterceptor interceptor : kafkaConsumerInterceptors) {
-      try {
-        if (interceptor.beforeConsume(event)) {
-          return true;
-        }
-      } catch (Throwable throwable) {
-        log.error("Error while invoke interceptor", throwable);
-      }
-    }
-    return false;
-  }
-
-  private void afterSuccessConsume(ConsumerEvent event) {
-    for (KafkaConsumerInterceptor interceptor : kafkaConsumerInterceptors) {
-      try {
-        interceptor.afterSuccessConsume(event);
-      } catch (Throwable throwable) {
-        log.error("Error while invoke interceptor", throwable);
-      }
-    }
-  }
-
-  private void afterErrorConsume(ConsumerEvent event, Throwable throwable) {
-    for (KafkaConsumerInterceptor interceptor : kafkaConsumerInterceptors) {
-      try {
-        interceptor.afterFailedConsume(event, throwable);
-      } catch (Throwable e) {
-        log.error("Error while invoke interceptor", e);
-      }
-    }
-  }
 }

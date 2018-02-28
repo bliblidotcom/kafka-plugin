@@ -16,6 +16,9 @@
 
 package com.blibli.oss.kafka.configuration;
 
+import com.blibli.oss.kafka.aop.KafkaListenerAdvisor;
+import com.blibli.oss.kafka.aop.KafkaListenerInterceptor;
+import com.blibli.oss.kafka.aop.KafkaListenerPointcut;
 import com.blibli.oss.kafka.aspect.KafkaListenerAspect;
 import com.blibli.oss.kafka.producer.KafkaProducer;
 import com.blibli.oss.kafka.producer.impl.KafkaProducerImpl;
@@ -24,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
@@ -41,9 +45,30 @@ import org.springframework.kafka.core.KafkaTemplate;
 public class KafkaAutoConfiguration {
 
   @Bean
+  @ConditionalOnProperty(value = "kafka.plugin.aspectj", havingValue = "true", matchIfMissing = true)
   public KafkaListenerAspect kafkaListenerAspect(@Autowired ObjectMapper objectMapper,
                                                  @Autowired KafkaProperties kafkaProperties) {
     return new KafkaListenerAspect(objectMapper, kafkaProperties.getModel());
+  }
+
+  @Bean
+  @ConditionalOnProperty(value = "kafka.plugin.aspectj", havingValue = "false")
+  public KafkaListenerPointcut kafkaListenerPointcut() {
+    return new KafkaListenerPointcut();
+  }
+
+  @Bean
+  @ConditionalOnProperty(value = "kafka.plugin.aspectj", havingValue = "false")
+  public KafkaListenerInterceptor kafkaListenerInterceptor(@Autowired ObjectMapper objectMapper,
+                                                           @Autowired KafkaProperties kafkaProperties) {
+    return new KafkaListenerInterceptor(objectMapper, kafkaProperties.getModel());
+  }
+
+  @Bean
+  @ConditionalOnProperty(value = "kafka.plugin.aspectj", havingValue = "false")
+  public KafkaListenerAdvisor kafkaListenerAdvisor(KafkaListenerPointcut kafkaListenerPointcut,
+                                                   KafkaListenerInterceptor kafkaListenerInterceptor) {
+    return new KafkaListenerAdvisor(kafkaListenerPointcut, kafkaListenerInterceptor);
   }
 
   @Bean

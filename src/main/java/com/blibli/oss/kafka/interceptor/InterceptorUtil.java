@@ -1,5 +1,7 @@
 package com.blibli.oss.kafka.interceptor;
 
+import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.OrderComparator;
 
@@ -12,7 +14,41 @@ import java.util.Map;
  * @author Eko Kurniawan Khannedy
  * @since 11/02/18
  */
+@Slf4j
 public class InterceptorUtil {
+
+  public static boolean fireBeforeConsume(List<KafkaConsumerInterceptor> kafkaConsumerInterceptors, ConsumerEvent event) {
+    for (KafkaConsumerInterceptor interceptor : kafkaConsumerInterceptors) {
+      try {
+        if (interceptor.beforeConsume(event)) {
+          return true;
+        }
+      } catch (Throwable throwable) {
+        log.error("Error while invoke interceptor", throwable);
+      }
+    }
+    return false;
+  }
+
+  public static void fireAfterSuccessConsume(List<KafkaConsumerInterceptor> kafkaConsumerInterceptors, ConsumerEvent event) {
+    for (KafkaConsumerInterceptor interceptor : kafkaConsumerInterceptors) {
+      try {
+        interceptor.afterSuccessConsume(event);
+      } catch (Throwable throwable) {
+        log.error("Error while invoke interceptor", throwable);
+      }
+    }
+  }
+
+  public static void fireAfterErrorConsume(List<KafkaConsumerInterceptor> kafkaConsumerInterceptors, ConsumerEvent event, Throwable throwable) {
+    for (KafkaConsumerInterceptor interceptor : kafkaConsumerInterceptors) {
+      try {
+        interceptor.afterFailedConsume(event, throwable);
+      } catch (Throwable e) {
+        log.error("Error while invoke interceptor", e);
+      }
+    }
+  }
 
   /**
    * Get kafka producer interceptors
