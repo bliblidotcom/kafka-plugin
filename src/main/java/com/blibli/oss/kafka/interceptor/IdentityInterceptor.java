@@ -42,7 +42,8 @@ public class IdentityInterceptor implements KafkaProducerInterceptor {
   public void beforeSend(ProducerEvent event) {
     PropertyDescriptor descriptor = BeanUtils.getPropertyDescriptor(event.getValue().getClass(),
         kafkaProperties.getModel().getIdentity());
-    if (descriptor != null) {
+    if (descriptor != null && !isIdentityExists(event.getValue(), descriptor)) {
+      log.debug("Event id is not exists");
       writeIdentityId(event.getValue(), descriptor);
     }
   }
@@ -60,5 +61,20 @@ public class IdentityInterceptor implements KafkaProducerInterceptor {
         }
       }
     }
+  }
+
+  private boolean isIdentityExists(Object message, PropertyDescriptor descriptor) {
+    Method method = descriptor.getReadMethod();
+    if (method != null) {
+      try {
+        return method.invoke(message) != null;
+      } catch (IllegalAccessException | InvocationTargetException e) {
+        if (kafkaProperties.getLog().isWhenFailedSetEventId()) {
+          log.warn("Error while read identity id", e);
+        }
+      }
+    }
+
+    return false;
   }
 }

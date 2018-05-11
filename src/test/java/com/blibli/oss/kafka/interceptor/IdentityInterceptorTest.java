@@ -28,8 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
 /**
@@ -38,6 +37,7 @@ import static org.mockito.Mockito.when;
 public class IdentityInterceptorTest {
 
   public static final String EVENT_ID = "eventId";
+  public static final String EVENT_ID_VALUE = "id";
   @Rule
   public MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -68,6 +68,24 @@ public class IdentityInterceptorTest {
     assertNull(sampleData.getEventId());
     identityInterceptor.beforeSend(producerEvent);
     assertNotNull(sampleData.getEventId());
+  }
+
+  @Test
+  public void testDoNotInjectIfAlreadyExists() {
+    sampleData.setEventId(EVENT_ID_VALUE);
+    identityInterceptor.beforeSend(producerEvent);
+
+    assertNotNull(sampleData.getEventId());
+    assertEquals(EVENT_ID_VALUE, sampleData.getEventId());
+  }
+
+  @Test
+  public void testInjectIfNotExists() {
+    sampleData.setEventId(null);
+    identityInterceptor.beforeSend(producerEvent);
+
+    assertNotNull(sampleData.getEventId());
+    assertNotEquals(EVENT_ID_VALUE, sampleData.getEventId());
   }
 
   @Data
