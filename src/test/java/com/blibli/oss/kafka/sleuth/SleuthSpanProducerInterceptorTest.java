@@ -44,15 +44,15 @@ import static org.mockito.Mockito.*;
 /**
  * @author Eko Kurniawan Khannedy
  */
-public class SleuthSpanInterceptorTest {
+public class SleuthSpanProducerInterceptorTest {
 
   public static final String SPAN = "span";
   public static final Span SPAN_OBJECT = Span.builder()
-      .processId("processId")
-      .spanId(41841094L)
-      .traceId(234248923L)
-      .name("name")
-      .build();
+    .processId("processId")
+    .spanId(41841094L)
+    .traceId(234248923L)
+    .name("name")
+    .build();
   @Rule
   public MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -68,70 +68,34 @@ public class SleuthSpanInterceptorTest {
   private SleuthProperties sleuthProperties;
 
   private SampleData sampleData = SampleData.builder()
-      .build();
+    .build();
 
   private ProducerEvent producerEvent = ProducerEvent.builder()
-      .value(sampleData)
-      .build();
+    .value(sampleData)
+    .build();
 
   private ConsumerEvent consumerEvent = ConsumerEvent.builder()
-      .build();
+    .build();
 
-  private SleuthSpanInterceptor sleuthSpanInterceptor;
+  private SleuthSpanProducerInterceptor sleuthSpanProducerInterceptor;
 
   @Before
   public void setUp() throws Exception {
-    sleuthSpanInterceptor = new SleuthSpanInterceptor(modelProperties, objectMapper, tracer, sleuthProperties);
+    sleuthSpanProducerInterceptor = new SleuthSpanProducerInterceptor(modelProperties, objectMapper, tracer, sleuthProperties);
 
     when(modelProperties.getTrace()).thenReturn(SPAN);
   }
 
   @Test
   public void beforeSend() {
-    sleuthSpanInterceptor.beforeSend(producerEvent);
+    sleuthSpanProducerInterceptor.beforeSend(producerEvent);
     assertEquals(sampleData.getSpan(), Collections.emptyMap());
     verify(tracer, times(1)).getCurrentSpan();
   }
 
   @Test
-  public void beforeConsumeWithContinueSpan() throws JsonProcessingException {
-    when(sleuthProperties.isSupportsJoin()).thenReturn(false);
-
-    Map<String, String> spanMap = SleuthHelper.toMap(SPAN_OBJECT);
-
-    Map<String, Object> jsonMap = new HashMap<>();
-    jsonMap.put("span", spanMap);
-
-    String json = objectMapper.writeValueAsString(jsonMap);
-
-    consumerEvent.setValue(json);
-
-    sleuthSpanInterceptor.beforeConsume(consumerEvent);
-
-    verify(tracer).continueSpan(any(Span.class));
-  }
-
-  @Test
-  public void beforeConsumeWithJoinSpan() throws JsonProcessingException {
-    when(sleuthProperties.isSupportsJoin()).thenReturn(true);
-
-    Map<String, String> spanMap = SleuthHelper.toMap(SPAN_OBJECT);
-
-    Map<String, Object> jsonMap = new HashMap<>();
-    jsonMap.put("span", spanMap);
-
-    String json = objectMapper.writeValueAsString(jsonMap);
-
-    consumerEvent.setValue(json);
-
-    sleuthSpanInterceptor.beforeConsume(consumerEvent);
-
-    verify(tracer).createSpan(eq("name"), any(Span.class));
-  }
-
-  @Test
   public void testGetOrder() {
-    assertEquals(Ordered.HIGHEST_PRECEDENCE, sleuthSpanInterceptor.getOrder());
+    assertEquals(Ordered.HIGHEST_PRECEDENCE + 1, sleuthSpanProducerInterceptor.getOrder());
   }
 
   @Data

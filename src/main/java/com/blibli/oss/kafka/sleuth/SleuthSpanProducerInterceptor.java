@@ -16,14 +16,9 @@
 
 package com.blibli.oss.kafka.sleuth;
 
-import com.blibli.oss.kafka.interceptor.KafkaConsumerInterceptor;
 import com.blibli.oss.kafka.interceptor.KafkaProducerInterceptor;
-import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
 import com.blibli.oss.kafka.interceptor.events.ProducerEvent;
 import com.blibli.oss.kafka.properties.KafkaProperties;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -39,7 +34,7 @@ import java.util.Map;
  * @author Eko Kurniawan Khannedy
  */
 @Slf4j
-public class SleuthSpanInterceptor implements KafkaConsumerInterceptor, KafkaProducerInterceptor {
+public class SleuthSpanProducerInterceptor implements KafkaProducerInterceptor {
 
   private KafkaProperties.ModelProperties modelProperties;
 
@@ -49,8 +44,8 @@ public class SleuthSpanInterceptor implements KafkaConsumerInterceptor, KafkaPro
 
   private SleuthProperties sleuthProperties;
 
-  public SleuthSpanInterceptor(KafkaProperties.ModelProperties modelProperties, ObjectMapper objectMapper,
-                               Tracer tracer, SleuthProperties sleuthProperties) {
+  public SleuthSpanProducerInterceptor(KafkaProperties.ModelProperties modelProperties, ObjectMapper objectMapper,
+                                       Tracer tracer, SleuthProperties sleuthProperties) {
     this.modelProperties = modelProperties;
     this.objectMapper = objectMapper;
     this.tracer = tracer;
@@ -75,32 +70,7 @@ public class SleuthSpanInterceptor implements KafkaConsumerInterceptor, KafkaPro
   }
 
   @Override
-  public boolean beforeConsume(ConsumerEvent event) {
-    try {
-      JsonNode node = objectMapper.readTree(event.getValue());
-      JsonNode spanNode = node.get(modelProperties.getTrace());
-      if (spanNode != null) {
-        JsonParser jsonParser = objectMapper.treeAsTokens(spanNode);
-        Map<String, String> span = objectMapper.readValue(jsonParser, new TypeReference<Map<String, String>>() {
-        });
-
-        if (sleuthProperties.isSupportsJoin()) {
-          SleuthHelper.joinSpan(tracer, span);
-          log.debug("Join trace span {}", span);
-        } else {
-          SleuthHelper.continueSpan(tracer, span);
-          log.debug("Continue trace span {}", span);
-        }
-      }
-    } catch (Throwable throwable) {
-      log.error("Failed continue span", throwable);
-    }
-
-    return false;
-  }
-
-  @Override
   public int getOrder() {
-    return Ordered.HIGHEST_PRECEDENCE;
+    return Ordered.HIGHEST_PRECEDENCE + 1;
   }
 }
