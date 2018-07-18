@@ -21,20 +21,24 @@ import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
 import com.blibli.oss.kafka.properties.KafkaProperties;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.sleuth.Tracer;
 import org.springframework.cloud.sleuth.autoconfig.SleuthProperties;
 import org.springframework.core.Ordered;
 
+import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Eko Kurniawan Khannedy
  */
 @Slf4j
 public class SleuthSpanConsumerInterceptor implements KafkaConsumerInterceptor {
+
+  private static final String KAFKA_COMPONENT = "kafka:consumer";
 
   private KafkaProperties.ModelProperties modelProperties;
 
@@ -55,13 +59,8 @@ public class SleuthSpanConsumerInterceptor implements KafkaConsumerInterceptor {
   @Override
   public boolean beforeConsume(ConsumerEvent event) {
     try {
-      JsonNode node = objectMapper.readTree(event.getValue());
-      JsonNode spanNode = node.get(modelProperties.getTrace());
-      if (spanNode != null) {
-        JsonParser jsonParser = objectMapper.treeAsTokens(spanNode);
-        Map<String, String> span = objectMapper.readValue(jsonParser, new TypeReference<Map<String, String>>() {
-        });
-
+      Map<String, String> span = getSpan(event.getValue());
+      if (span != null && !span.isEmpty()) {
         if (sleuthProperties.isSupportsJoin()) {
           SleuthHelper.joinSpan(tracer, span);
           log.debug("Join trace span {}", span);
@@ -69,12 +68,35 @@ public class SleuthSpanConsumerInterceptor implements KafkaConsumerInterceptor {
           SleuthHelper.continueSpan(tracer, span);
           log.debug("Continue trace span {}", span);
         }
+      } else {
+        String name = KAFKA_COMPONENT + ":" + event.getTopic();
+        tracer.close(tracer.getCurrentSpan());
+        tracer.createSpan(name);
+        log.debug("Sleuth span is not available, create new one");
       }
     } catch (Throwable throwable) {
       log.error("Failed continue span", throwable);
     }
 
     return false;
+  }
+
+  private Map<String, String> getSpan(String json) throws IOException {
+    return Optional.ofNullable(objectMapper.readTree(json))
+      .map(value -> value.get(modelProperties.getTrace()))
+      .map(value -> objectMapper.treeAsTokens(value))
+      .map(this::getMap)
+      .orElse(Collections.emptyMap());
+  }
+
+  private Map<String, String> getMap(JsonParser value) {
+    try {
+      return objectMapper.readValue(value, new TypeReference<Map<String, String>>() {
+      });
+    } catch (IOException e) {
+      log.error("Failed get map from span attribute", e);
+      return Collections.emptyMap();
+    }
   }
 
   @Override

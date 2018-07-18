@@ -59,13 +59,8 @@ public class SleuthSpanProducerInterceptorTest {
   @Mock
   private KafkaProperties.ModelProperties modelProperties;
 
-  private ObjectMapper objectMapper = new ObjectMapper();
-
   @Mock
   private Tracer tracer;
-
-  @Mock
-  private SleuthProperties sleuthProperties;
 
   private SampleData sampleData = SampleData.builder()
     .build();
@@ -81,7 +76,7 @@ public class SleuthSpanProducerInterceptorTest {
 
   @Before
   public void setUp() throws Exception {
-    sleuthSpanProducerInterceptor = new SleuthSpanProducerInterceptor(modelProperties, objectMapper, tracer, sleuthProperties);
+    sleuthSpanProducerInterceptor = new SleuthSpanProducerInterceptor(modelProperties, tracer);
 
     when(modelProperties.getTrace()).thenReturn(SPAN);
   }
@@ -90,12 +85,13 @@ public class SleuthSpanProducerInterceptorTest {
   public void beforeSend() {
     sleuthSpanProducerInterceptor.beforeSend(producerEvent);
     assertEquals(sampleData.getSpan(), Collections.emptyMap());
-    verify(tracer, times(1)).getCurrentSpan();
+    verify(tracer, times(2)).getCurrentSpan();
+    verify(tracer).createSpan("kafka:producer:" + producerEvent.getTopic());
   }
 
   @Test
   public void testGetOrder() {
-    assertEquals(Ordered.HIGHEST_PRECEDENCE + 1, sleuthSpanProducerInterceptor.getOrder());
+    assertEquals(Ordered.HIGHEST_PRECEDENCE , sleuthSpanProducerInterceptor.getOrder());
   }
 
   @Data

@@ -17,8 +17,6 @@
 package com.blibli.oss.kafka.configuration;
 
 import com.blibli.oss.kafka.properties.KafkaProperties;
-import com.blibli.oss.kafka.sleuth.SleuthSpanAutoCreateConsumerInterceptor;
-import com.blibli.oss.kafka.sleuth.SleuthSpanAutoCreateProducerInterceptor;
 import com.blibli.oss.kafka.sleuth.SleuthSpanConsumerInterceptor;
 import com.blibli.oss.kafka.sleuth.SleuthSpanProducerInterceptor;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,10 +39,8 @@ public class KafkaSleuthAutoConfiguration {
 
   @Bean
   public SleuthSpanProducerInterceptor sleuthSpanProducerInterceptor(@Autowired KafkaProperties kafkaProperties,
-                                                                     @Autowired ObjectMapper objectMapper,
-                                                                     @Autowired Tracer tracer,
-                                                                     @Autowired SleuthProperties sleuthProperties) {
-    return new SleuthSpanProducerInterceptor(kafkaProperties.getModel(), objectMapper, tracer, sleuthProperties);
+                                                                     @Autowired Tracer tracer) {
+    return new SleuthSpanProducerInterceptor(kafkaProperties.getModel(), tracer);
   }
 
   @Bean
@@ -53,16 +49,6 @@ public class KafkaSleuthAutoConfiguration {
                                                                      @Autowired Tracer tracer,
                                                                      @Autowired SleuthProperties sleuthProperties) {
     return new SleuthSpanConsumerInterceptor(kafkaProperties.getModel(), objectMapper, tracer, sleuthProperties);
-  }
-
-  @Bean
-  public SleuthSpanAutoCreateConsumerInterceptor sleuthSpanAutoCreateConsumerInterceptor(@Autowired Tracer tracer) {
-    return new SleuthSpanAutoCreateConsumerInterceptor(tracer);
-  }
-
-  @Bean
-  public SleuthSpanAutoCreateProducerInterceptor sleuthSpanAutoCreateProducerInterceptor(@Autowired Tracer tracer) {
-    return new SleuthSpanAutoCreateProducerInterceptor(tracer);
   }
 
 }

@@ -19,11 +19,9 @@ package com.blibli.oss.kafka.sleuth;
 import com.blibli.oss.kafka.interceptor.KafkaProducerInterceptor;
 import com.blibli.oss.kafka.interceptor.events.ProducerEvent;
 import com.blibli.oss.kafka.properties.KafkaProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cloud.sleuth.Tracer;
-import org.springframework.cloud.sleuth.autoconfig.SleuthProperties;
 import org.springframework.core.Ordered;
 
 import java.beans.PropertyDescriptor;
@@ -36,20 +34,15 @@ import java.util.Map;
 @Slf4j
 public class SleuthSpanProducerInterceptor implements KafkaProducerInterceptor {
 
-  private KafkaProperties.ModelProperties modelProperties;
+  private static final String KAFKA_COMPONENT = "kafka:producer";
 
-  private ObjectMapper objectMapper;
+  private KafkaProperties.ModelProperties modelProperties;
 
   private Tracer tracer;
 
-  private SleuthProperties sleuthProperties;
-
-  public SleuthSpanProducerInterceptor(KafkaProperties.ModelProperties modelProperties, ObjectMapper objectMapper,
-                                       Tracer tracer, SleuthProperties sleuthProperties) {
+  public SleuthSpanProducerInterceptor(KafkaProperties.ModelProperties modelProperties, Tracer tracer) {
     this.modelProperties = modelProperties;
-    this.objectMapper = objectMapper;
     this.tracer = tracer;
-    this.sleuthProperties = sleuthProperties;
   }
 
   @Override
@@ -59,6 +52,12 @@ public class SleuthSpanProducerInterceptor implements KafkaProducerInterceptor {
       Method method = descriptor.getWriteMethod();
       if (method != null) {
         try {
+          if (tracer.getCurrentSpan() == null) {
+            String name = KAFKA_COMPONENT + ":" + event.getTopic();
+            tracer.createSpan(name);
+            log.debug("Sleuth span is not available, create new one");
+          }
+
           Map<String, String> span = SleuthHelper.toMap(tracer.getCurrentSpan());
           method.invoke(event.getValue(), span);
           log.debug("Inject trace span {} to message", span);
@@ -71,6 +70,6 @@ public class SleuthSpanProducerInterceptor implements KafkaProducerInterceptor {
 
   @Override
   public int getOrder() {
-    return Ordered.HIGHEST_PRECEDENCE + 1;
+    return Ordered.HIGHEST_PRECEDENCE;
   }
 }

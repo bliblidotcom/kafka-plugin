@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Builder;
 import lombok.Data;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,11 +49,11 @@ public class SleuthSpanConsumerInterceptorTest {
 
   public static final String SPAN = "span";
   public static final Span SPAN_OBJECT = Span.builder()
-      .processId("processId")
-      .spanId(41841094L)
-      .traceId(234248923L)
-      .name("name")
-      .build();
+    .processId("processId")
+    .spanId(41841094L)
+    .traceId(234248923L)
+    .name("name")
+    .build();
   @Rule
   public MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -68,14 +69,14 @@ public class SleuthSpanConsumerInterceptorTest {
   private SleuthProperties sleuthProperties;
 
   private SampleData sampleData = SampleData.builder()
-      .build();
+    .build();
 
   private ProducerEvent producerEvent = ProducerEvent.builder()
-      .value(sampleData)
-      .build();
+    .value(sampleData)
+    .build();
 
   private ConsumerEvent consumerEvent = ConsumerEvent.builder()
-      .build();
+    .build();
 
   private SleuthSpanConsumerInterceptor sleuthSpanProducerInterceptor;
 
@@ -120,6 +121,28 @@ public class SleuthSpanConsumerInterceptorTest {
     sleuthSpanProducerInterceptor.beforeConsume(consumerEvent);
 
     verify(tracer).createSpan(eq("name"), any(Span.class));
+  }
+
+  @Test
+  public void testNoSpan() throws JsonProcessingException {
+    when(sleuthProperties.isSupportsJoin()).thenReturn(true);
+
+    Map<String, Object> jsonMap = new HashMap<>();
+
+    String json = objectMapper.writeValueAsString(jsonMap);
+
+    consumerEvent.setValue(json);
+
+    sleuthSpanProducerInterceptor.beforeConsume(consumerEvent);
+
+    verify(tracer).createSpan("kafka:consumer:" + consumerEvent.getTopic());
+    verify(tracer).close(null);
+    verify(tracer).getCurrentSpan();
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    verifyNoMoreInteractions(tracer);
   }
 
   @Test
