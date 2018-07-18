@@ -17,7 +17,8 @@
 package com.blibli.oss.kafka.configuration;
 
 import com.blibli.oss.kafka.properties.KafkaProperties;
-import com.blibli.oss.kafka.sleuth.SleuthSpanInterceptor;
+import com.blibli.oss.kafka.sleuth.SleuthSpanConsumerInterceptor;
+import com.blibli.oss.kafka.sleuth.SleuthSpanProducerInterceptor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -37,11 +38,17 @@ import org.springframework.kafka.core.KafkaTemplate;
 public class KafkaSleuthAutoConfiguration {
 
   @Bean
-  public SleuthSpanInterceptor sleuthSpanInterceptor(@Autowired KafkaProperties kafkaProperties,
-                                                     @Autowired ObjectMapper objectMapper,
-                                                     @Autowired Tracer tracer,
-                                                     @Autowired SleuthProperties sleuthProperties) {
-    return new SleuthSpanInterceptor(kafkaProperties.getModel(), objectMapper, tracer, sleuthProperties);
+  public SleuthSpanProducerInterceptor sleuthSpanProducerInterceptor(@Autowired KafkaProperties kafkaProperties,
+                                                                     @Autowired Tracer tracer) {
+    return new SleuthSpanProducerInterceptor(kafkaProperties.getModel(), tracer);
+  }
+
+  @Bean
+  public SleuthSpanConsumerInterceptor sleuthSpanConsumerInterceptor(@Autowired KafkaProperties kafkaProperties,
+                                                                     @Autowired ObjectMapper objectMapper,
+                                                                     @Autowired Tracer tracer,
+                                                                     @Autowired SleuthProperties sleuthProperties) {
+    return new SleuthSpanConsumerInterceptor(kafkaProperties.getModel(), objectMapper, tracer, sleuthProperties);
   }
 
 }

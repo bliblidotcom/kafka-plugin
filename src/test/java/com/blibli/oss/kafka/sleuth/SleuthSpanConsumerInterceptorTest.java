@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Builder;
 import lombok.Data;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,15 +45,15 @@ import static org.mockito.Mockito.*;
 /**
  * @author Eko Kurniawan Khannedy
  */
-public class SleuthSpanInterceptorTest {
+public class SleuthSpanConsumerInterceptorTest {
 
   public static final String SPAN = "span";
   public static final Span SPAN_OBJECT = Span.builder()
-      .processId("processId")
-      .spanId(41841094L)
-      .traceId(234248923L)
-      .name("name")
-      .build();
+    .processId("processId")
+    .spanId(41841094L)
+    .traceId(234248923L)
+    .name("name")
+    .build();
   @Rule
   public MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -68,29 +69,22 @@ public class SleuthSpanInterceptorTest {
   private SleuthProperties sleuthProperties;
 
   private SampleData sampleData = SampleData.builder()
-      .build();
+    .build();
 
   private ProducerEvent producerEvent = ProducerEvent.builder()
-      .value(sampleData)
-      .build();
+    .value(sampleData)
+    .build();
 
   private ConsumerEvent consumerEvent = ConsumerEvent.builder()
-      .build();
+    .build();
 
-  private SleuthSpanInterceptor sleuthSpanInterceptor;
+  private SleuthSpanConsumerInterceptor sleuthSpanProducerInterceptor;
 
   @Before
   public void setUp() throws Exception {
-    sleuthSpanInterceptor = new SleuthSpanInterceptor(modelProperties, objectMapper, tracer, sleuthProperties);
+    sleuthSpanProducerInterceptor = new SleuthSpanConsumerInterceptor(modelProperties, objectMapper, tracer, sleuthProperties);
 
     when(modelProperties.getTrace()).thenReturn(SPAN);
-  }
-
-  @Test
-  public void beforeSend() {
-    sleuthSpanInterceptor.beforeSend(producerEvent);
-    assertEquals(sampleData.getSpan(), Collections.emptyMap());
-    verify(tracer, times(1)).getCurrentSpan();
   }
 
   @Test
@@ -106,7 +100,7 @@ public class SleuthSpanInterceptorTest {
 
     consumerEvent.setValue(json);
 
-    sleuthSpanInterceptor.beforeConsume(consumerEvent);
+    sleuthSpanProducerInterceptor.beforeConsume(consumerEvent);
 
     verify(tracer).continueSpan(any(Span.class));
   }
@@ -124,14 +118,36 @@ public class SleuthSpanInterceptorTest {
 
     consumerEvent.setValue(json);
 
-    sleuthSpanInterceptor.beforeConsume(consumerEvent);
+    sleuthSpanProducerInterceptor.beforeConsume(consumerEvent);
 
     verify(tracer).createSpan(eq("name"), any(Span.class));
   }
 
   @Test
+  public void testNoSpan() throws JsonProcessingException {
+    when(sleuthProperties.isSupportsJoin()).thenReturn(true);
+
+    Map<String, Object> jsonMap = new HashMap<>();
+
+    String json = objectMapper.writeValueAsString(jsonMap);
+
+    consumerEvent.setValue(json);
+
+    sleuthSpanProducerInterceptor.beforeConsume(consumerEvent);
+
+    verify(tracer).createSpan("kafka:consumer:" + consumerEvent.getTopic());
+    verify(tracer).close(null);
+    verify(tracer).getCurrentSpan();
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    verifyNoMoreInteractions(tracer);
+  }
+
+  @Test
   public void testGetOrder() {
-    assertEquals(Ordered.HIGHEST_PRECEDENCE, sleuthSpanInterceptor.getOrder());
+    assertEquals(Ordered.HIGHEST_PRECEDENCE, sleuthSpanProducerInterceptor.getOrder());
   }
 
   @Data

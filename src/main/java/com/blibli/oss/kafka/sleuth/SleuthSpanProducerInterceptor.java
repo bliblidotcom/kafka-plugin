@@ -16,19 +16,12 @@
 
 package com.blibli.oss.kafka.sleuth;
 
-import com.blibli.oss.kafka.interceptor.KafkaConsumerInterceptor;
 import com.blibli.oss.kafka.interceptor.KafkaProducerInterceptor;
-import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
 import com.blibli.oss.kafka.interceptor.events.ProducerEvent;
 import com.blibli.oss.kafka.properties.KafkaProperties;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cloud.sleuth.Tracer;
-import org.springframework.cloud.sleuth.autoconfig.SleuthProperties;
 import org.springframework.core.Ordered;
 
 import java.beans.PropertyDescriptor;
@@ -39,22 +32,17 @@ import java.util.Map;
  * @author Eko Kurniawan Khannedy
  */
 @Slf4j
-public class SleuthSpanInterceptor implements KafkaConsumerInterceptor, KafkaProducerInterceptor {
+public class SleuthSpanProducerInterceptor implements KafkaProducerInterceptor {
+
+  private static final String KAFKA_COMPONENT = "kafka:producer";
 
   private KafkaProperties.ModelProperties modelProperties;
 
-  private ObjectMapper objectMapper;
-
   private Tracer tracer;
 
-  private SleuthProperties sleuthProperties;
-
-  public SleuthSpanInterceptor(KafkaProperties.ModelProperties modelProperties, ObjectMapper objectMapper,
-                               Tracer tracer, SleuthProperties sleuthProperties) {
+  public SleuthSpanProducerInterceptor(KafkaProperties.ModelProperties modelProperties, Tracer tracer) {
     this.modelProperties = modelProperties;
-    this.objectMapper = objectMapper;
     this.tracer = tracer;
-    this.sleuthProperties = sleuthProperties;
   }
 
   @Override
@@ -64,6 +52,12 @@ public class SleuthSpanInterceptor implements KafkaConsumerInterceptor, KafkaPro
       Method method = descriptor.getWriteMethod();
       if (method != null) {
         try {
+          if (tracer.getCurrentSpan() == null) {
+            String name = KAFKA_COMPONENT + ":" + event.getTopic();
+            tracer.createSpan(name);
+            log.debug("Sleuth span is not available, create new one");
+          }
+
           Map<String, String> span = SleuthHelper.toMap(tracer.getCurrentSpan());
           method.invoke(event.getValue(), span);
           log.debug("Inject trace span {} to message", span);
@@ -72,31 +66,6 @@ public class SleuthSpanInterceptor implements KafkaConsumerInterceptor, KafkaPro
         }
       }
     }
-  }
-
-  @Override
-  public boolean beforeConsume(ConsumerEvent event) {
-    try {
-      JsonNode node = objectMapper.readTree(event.getValue());
-      JsonNode spanNode = node.get(modelProperties.getTrace());
-      if (spanNode != null) {
-        JsonParser jsonParser = objectMapper.treeAsTokens(spanNode);
-        Map<String, String> span = objectMapper.readValue(jsonParser, new TypeReference<Map<String, String>>() {
-        });
-
-        if (sleuthProperties.isSupportsJoin()) {
-          SleuthHelper.joinSpan(tracer, span);
-          log.debug("Join trace span {}", span);
-        } else {
-          SleuthHelper.continueSpan(tracer, span);
-          log.debug("Continue trace span {}", span);
-        }
-      }
-    } catch (Throwable throwable) {
-      log.error("Failed continue span", throwable);
-    }
-
-    return false;
   }
 
   @Override
