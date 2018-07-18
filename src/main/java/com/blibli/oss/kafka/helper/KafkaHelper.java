@@ -28,8 +28,8 @@ public class KafkaHelper {
 
   public static String getEventId(String message, ObjectMapper objectMapper, KafkaProperties.ModelProperties modelProperties) {
     try {
-      JsonNode jsonNode = objectMapper.readTree(message);
-      return Optional.ofNullable(jsonNode.get(modelProperties.getIdentity()))
+      return Optional.ofNullable(objectMapper.readTree(message))
+        .map(jsonNode -> jsonNode.get(modelProperties.getIdentity()))
         .map(JsonNode::asText)
         .orElse(null);
     } catch (Throwable throwable) {
