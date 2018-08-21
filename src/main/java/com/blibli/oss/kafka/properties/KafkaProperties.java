@@ -39,6 +39,7 @@ public class KafkaProperties {
 
     private boolean whenFailedSetEventId = true;
 
+    private boolean whenFailedGetEventId = true;
   }
 
   @Data

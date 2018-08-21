@@ -48,7 +48,7 @@ public class KafkaAutoConfiguration {
   @ConditionalOnProperty(value = "kafka.plugin.aspectj", havingValue = "true", matchIfMissing = true)
   public KafkaListenerAspect kafkaListenerAspect(@Autowired ObjectMapper objectMapper,
                                                  @Autowired KafkaProperties kafkaProperties) {
-    return new KafkaListenerAspect(objectMapper, kafkaProperties.getModel());
+    return new KafkaListenerAspect(objectMapper, kafkaProperties);
   }
 
   @Bean
@@ -61,7 +61,7 @@ public class KafkaAutoConfiguration {
   @ConditionalOnProperty(value = "kafka.plugin.aspectj", havingValue = "false")
   public KafkaListenerInterceptor kafkaListenerInterceptor(@Autowired ObjectMapper objectMapper,
                                                            @Autowired KafkaProperties kafkaProperties) {
-    return new KafkaListenerInterceptor(objectMapper, kafkaProperties.getModel());
+    return new KafkaListenerInterceptor(objectMapper, kafkaProperties);
   }
 
   @Bean

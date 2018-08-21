@@ -46,13 +46,13 @@ public class KafkaListenerAspect implements ApplicationContextAware, Initializin
 
   private ObjectMapper objectMapper;
 
-  private KafkaProperties.ModelProperties modelProperties;
+  private KafkaProperties kafkaProperties;
 
   private List<KafkaConsumerInterceptor> kafkaConsumerInterceptors;
 
-  public KafkaListenerAspect(ObjectMapper objectMapper, KafkaProperties.ModelProperties modelProperties) {
+  public KafkaListenerAspect(ObjectMapper objectMapper, KafkaProperties kafkaProperties) {
     this.objectMapper = objectMapper;
-    this.modelProperties = modelProperties;
+    this.kafkaProperties = kafkaProperties;
   }
 
   @Override
@@ -106,7 +106,7 @@ public class KafkaListenerAspect implements ApplicationContextAware, Initializin
   }
 
   private String getEventId(ConsumerRecord<String, String> record) {
-    return KafkaHelper.getEventId(record.value(), objectMapper, modelProperties);
+    return KafkaHelper.getEventId(record.value(), objectMapper, kafkaProperties);
   }
 
 }
