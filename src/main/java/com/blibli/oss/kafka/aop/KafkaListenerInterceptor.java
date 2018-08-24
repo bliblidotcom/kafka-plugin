@@ -47,13 +47,13 @@ public class KafkaListenerInterceptor implements MethodInterceptor, ApplicationC
 
   private ObjectMapper objectMapper;
 
-  private KafkaProperties.ModelProperties modelProperties;
+  private KafkaProperties kafkaProperties;
 
   private List<KafkaConsumerInterceptor> kafkaConsumerInterceptors;
 
-  public KafkaListenerInterceptor(ObjectMapper objectMapper, KafkaProperties.ModelProperties modelProperties) {
+  public KafkaListenerInterceptor(ObjectMapper objectMapper, KafkaProperties kafkaProperties) {
     this.objectMapper = objectMapper;
-    this.modelProperties = modelProperties;
+    this.kafkaProperties = kafkaProperties;
   }
 
   @Override
@@ -112,6 +112,6 @@ public class KafkaListenerInterceptor implements MethodInterceptor, ApplicationC
   }
 
   private String getEventId(ConsumerRecord<String, String> record) {
-    return KafkaHelper.getEventId(record.value(), objectMapper, modelProperties);
+    return KafkaHelper.getEventId(record.value(), objectMapper, kafkaProperties);
   }
 }

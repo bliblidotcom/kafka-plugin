@@ -26,14 +26,16 @@ public class KafkaHelper {
       .build();
   }
 
-  public static String getEventId(String message, ObjectMapper objectMapper, KafkaProperties.ModelProperties modelProperties) {
+  public static String getEventId(String message, ObjectMapper objectMapper, KafkaProperties kafkaProperties) {
     try {
       return Optional.ofNullable(objectMapper.readTree(message))
-        .map(jsonNode -> jsonNode.get(modelProperties.getIdentity()))
+        .map(jsonNode -> jsonNode.get(kafkaProperties.getModel().getIdentity()))
         .map(JsonNode::asText)
         .orElse(null);
     } catch (Throwable throwable) {
-      log.warn("Error while get event id", throwable);
+      if (kafkaProperties.getLog().isWhenFailedGetEventId()) {
+        log.warn("Error while get event id", throwable);
+      }
       return null;
     }
   }
