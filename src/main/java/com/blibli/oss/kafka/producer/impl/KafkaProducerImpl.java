@@ -78,7 +78,7 @@ public class KafkaProducerImpl implements KafkaProducer, ApplicationContextAware
           .timestamp(timestamp)
           .build();
 
-      fireBeforeSend(event);
+      InterceptorUtil.fireBeforeSend(kafkaProducerInterceptors, event);
 
       String json = objectMapper.writeValueAsString(event.getValue());
       Future<SendResult<String, String>> result = kafkaTemplate.send(
@@ -88,16 +88,6 @@ public class KafkaProducerImpl implements KafkaProducer, ApplicationContextAware
       return Single.from(result);
     } catch (JsonProcessingException e) {
       return Single.error(e);
-    }
-  }
-
-  private void fireBeforeSend(ProducerEvent event) {
-    for (KafkaProducerInterceptor interceptor : kafkaProducerInterceptors) {
-      try {
-        interceptor.beforeSend(event);
-      } catch (Throwable throwable) {
-        log.error("Error while invoking interceptor", throwable);
-      }
     }
   }
 }
