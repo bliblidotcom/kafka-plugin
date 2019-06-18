@@ -2,4 +2,6 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 com.blibli.oss.kafka.configuration.KafkaPropertiesAutoConfiguration,\
 com.blibli.oss.kafka.configuration.KafkaAutoConfiguration,\
 com.blibli.oss.kafka.configuration.KafkaInterceptorAutoConfiguration,\
-com.blibli.oss.kafka.configuration.KafkaSleuthAutoConfiguration
+com.blibli.oss.kafka.configuration.KafkaSleuthAutoConfiguration,\
+com.blibli.oss.kafka.configuration.KafkaRxJavaAutoConfiguration,\
+com.blibli.oss.kafka.configuration.KafkaReactorAutoConfiguration

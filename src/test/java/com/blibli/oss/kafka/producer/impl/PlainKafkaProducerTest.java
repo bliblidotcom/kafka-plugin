@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package com.blibli.oss.kafka.producer;
+package com.blibli.oss.kafka.producer.impl;
 
 import com.blibli.oss.kafka.interceptor.KafkaProducerInterceptor;
 import com.blibli.oss.kafka.interceptor.events.ProducerEvent;
-import com.blibli.oss.kafka.producer.impl.KafkaProducerImpl;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,7 +46,7 @@ import static org.mockito.Mockito.*;
 /**
  * @author Eko Kurniawan Khannedy
  */
-public class KafkaProducerTest {
+public class PlainKafkaProducerTest {
 
   public static final String KEY = "key";
 
@@ -73,7 +72,7 @@ public class KafkaProducerTest {
   private SendResult<String, String> sendResult;
 
   @InjectMocks
-  private KafkaProducerImpl kafkaProducer;
+  private PlainKafkaProducerImpl kafkaProducer;
 
   private Request request;
 
@@ -97,7 +96,7 @@ public class KafkaProducerTest {
     kafkaProducer.afterPropertiesSet();
 
     SendResult<String, String> value = kafkaProducer.send("TOPIC_NAME", request)
-        .toBlocking().value();
+        .get();
 
     assertSame(sendResult, value);
   }
@@ -115,7 +114,7 @@ public class KafkaProducerTest {
     mockKafkaTemplateWithExceptionResult();
 
     kafkaProducer.send("TOPIC_NAME", request)
-        .toBlocking().value();
+        .get();
   }
 
   private void mockKafkaTemplateWithExceptionResult() {
@@ -131,7 +130,7 @@ public class KafkaProducerTest {
     mockObjectMapperErrorParsing();
 
     kafkaProducer.send("TOPIC_NAME", request)
-        .toBlocking().value();
+        .get();
   }
 
   private void mockObjectMapperErrorParsing() throws JsonProcessingException {
@@ -148,7 +147,7 @@ public class KafkaProducerTest {
     kafkaProducer.setApplicationContext(applicationContext);
     kafkaProducer.afterPropertiesSet();
     SendResult<String, String> value = kafkaProducer.send("TOPIC_NAME", request)
-        .toBlocking().value();
+        .get();
 
     assertSame(sendResult, value);
     verify(kafkaProducerInterceptor, times(1))

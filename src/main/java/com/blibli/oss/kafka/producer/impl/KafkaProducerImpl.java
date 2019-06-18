@@ -16,88 +16,24 @@
 
 package com.blibli.oss.kafka.producer.impl;
 
-import com.blibli.oss.kafka.interceptor.InterceptorUtil;
-import com.blibli.oss.kafka.interceptor.KafkaProducerInterceptor;
-import com.blibli.oss.kafka.interceptor.events.ProducerEvent;
 import com.blibli.oss.kafka.producer.KafkaProducer;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.blibli.oss.kafka.producer.PlainKafkaProducer;
 import org.springframework.kafka.support.SendResult;
 import rx.Single;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Future;
 
 /**
  * @author Eko Kurniawan Khannedy
  */
-@Slf4j
-public class KafkaProducerImpl implements KafkaProducer, ApplicationContextAware, InitializingBean {
+public class KafkaProducerImpl implements KafkaProducer {
 
-  private ObjectMapper objectMapper;
+  private PlainKafkaProducer plainKafkaProducer;
 
-  private KafkaTemplate<String, String> kafkaTemplate;
-
-  private ApplicationContext applicationContext;
-
-  private List<KafkaProducerInterceptor> kafkaProducerInterceptors;
-
-  public KafkaProducerImpl(ObjectMapper objectMapper, KafkaTemplate<String, String> kafkaTemplate) {
-    this.objectMapper = objectMapper;
-    this.kafkaTemplate = kafkaTemplate;
-  }
-
-  @Override
-  public void afterPropertiesSet() throws Exception {
-    kafkaProducerInterceptors = InterceptorUtil.getKafkaProducerInterceptors(applicationContext);
-  }
-
-  @Override
-  public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-    this.applicationContext = applicationContext;
+  public KafkaProducerImpl(PlainKafkaProducer plainKafkaProducer) {
+    this.plainKafkaProducer = plainKafkaProducer;
   }
 
   @Override
   public Single<SendResult<String, String>> send(String topic, String key, Object message, Integer partition, Long timestamp) {
-    try {
-      ProducerEvent event = ProducerEvent.builder()
-          .key(key)
-          .topic(topic)
-          .value(message)
-          .partition(partition)
-          .timestamp(timestamp)
-          .build();
-
-      fireBeforeSend(event);
-
-      String json = objectMapper.writeValueAsString(event.getValue());
-      Future<SendResult<String, String>> result = kafkaTemplate.send(
-          new ProducerRecord<>(event.getTopic(), event.getPartition(), event.getTimestamp(), event.getKey(), json)
-      );
-
-      return Single.from(result);
-    } catch (JsonProcessingException e) {
-      return Single.error(e);
-    }
-  }
-
-  private void fireBeforeSend(ProducerEvent event) {
-    for (KafkaProducerInterceptor interceptor : kafkaProducerInterceptors) {
-      try {
-        interceptor.beforeSend(event);
-      } catch (Throwable throwable) {
-        log.error("Error while invoking interceptor", throwable);
-      }
-    }
+    return Single.from(plainKafkaProducer.send(topic, key, message, partition, timestamp));
   }
 }

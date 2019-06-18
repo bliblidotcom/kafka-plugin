@@ -20,8 +20,8 @@ import com.blibli.oss.kafka.aop.KafkaListenerAdvisor;
 import com.blibli.oss.kafka.aop.KafkaListenerInterceptor;
 import com.blibli.oss.kafka.aop.KafkaListenerPointcut;
 import com.blibli.oss.kafka.aspect.KafkaListenerAspect;
-import com.blibli.oss.kafka.producer.KafkaProducer;
-import com.blibli.oss.kafka.producer.impl.KafkaProducerImpl;
+import com.blibli.oss.kafka.producer.PlainKafkaProducer;
+import com.blibli.oss.kafka.producer.impl.PlainKafkaProducerImpl;
 import com.blibli.oss.kafka.properties.KafkaProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,9 +72,9 @@ public class KafkaAutoConfiguration {
   }
 
   @Bean
-  public KafkaProducer walletProducer(@Autowired ObjectMapper objectMapper,
-                                      @Autowired KafkaTemplate<String, String> kafkaTemplate) {
-    return new KafkaProducerImpl(objectMapper, kafkaTemplate);
+  public PlainKafkaProducer plainKafkaProducer(@Autowired ObjectMapper objectMapper,
+                                               @Autowired KafkaTemplate<String, String> kafkaTemplate) {
+    return new PlainKafkaProducerImpl(objectMapper, kafkaTemplate);
   }
 
 }
