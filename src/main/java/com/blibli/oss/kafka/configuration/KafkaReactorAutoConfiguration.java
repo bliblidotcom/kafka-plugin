@@ -17,7 +17,7 @@ import reactor.core.publisher.Mono;
 public class KafkaReactorAutoConfiguration {
 
   @Bean
-  public ReactorKafkaProducer kafkaProducer(@Autowired PlainKafkaProducer plainKafkaProducer) {
+  public ReactorKafkaProducer reactorKafkaProducer(@Autowired PlainKafkaProducer plainKafkaProducer) {
     return new ReactorKafkaProducerImpl(plainKafkaProducer);
   }
 
