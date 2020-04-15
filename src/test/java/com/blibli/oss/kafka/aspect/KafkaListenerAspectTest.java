@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Builder;
 import lombok.Data;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +59,9 @@ public class KafkaListenerAspectTest {
   @MockBean
   private MyInterceptor myInterceptor;
 
+  @MockBean
+  private MyInterceptorSkip myInterceptorSkip;
+
   private SampleData sampleData = SampleData.builder()
       .eventId(EVENT_ID)
       .build();
@@ -68,6 +72,14 @@ public class KafkaListenerAspectTest {
   @Autowired
   private ObjectMapper objectMapper;
 
+  @Before
+  public void setUp() throws Exception {
+    when(myInterceptor.isSupport(anyObject(), anyObject()))
+        .thenReturn(true);
+    when(myInterceptorSkip.isSupport(anyObject(), anyObject()))
+        .thenReturn(false);
+  }
+
   @Test
   public void testInvoke() throws IOException {
     ConsumerRecord<String, String> record = new ConsumerRecord<>("topic", 1, 1L, "key", toJson());
@@ -76,6 +88,10 @@ public class KafkaListenerAspectTest {
     verify(myInterceptor, times(1))
         .beforeConsume(any(ConsumerEvent.class));
     verify(myInterceptor, times(1))
+        .afterSuccessConsume(any(ConsumerEvent.class));
+    verify(myInterceptorSkip, times(0))
+        .beforeConsume(any(ConsumerEvent.class));
+    verify(myInterceptorSkip, times(0))
         .afterSuccessConsume(any(ConsumerEvent.class));
   }
 
@@ -91,6 +107,10 @@ public class KafkaListenerAspectTest {
       verify(myInterceptor, times(1))
           .beforeConsume(any(ConsumerEvent.class));
       verify(myInterceptor, times(1))
+          .afterFailedConsume(any(ConsumerEvent.class), any(NullPointerException.class));
+      verify(myInterceptorSkip, times(0))
+          .beforeConsume(any(ConsumerEvent.class));
+      verify(myInterceptorSkip, times(0))
           .afterFailedConsume(any(ConsumerEvent.class), any(NullPointerException.class));
     }
   }
@@ -139,6 +159,10 @@ public class KafkaListenerAspectTest {
   }
 
   public static class MyInterceptor implements KafkaConsumerInterceptor {
+
+  }
+
+  public static class MyInterceptorSkip implements KafkaConsumerInterceptor {
 
   }
 }
