@@ -71,16 +71,19 @@ public class KafkaListenerInterceptor implements MethodInterceptor, ApplicationC
     if (isKafkaListener(invocation) && isConsumerRecordArgument(invocation)) {
       ConsumerRecord<String, String> record = getConsumerRecord(invocation);
       ConsumerEvent event = KafkaHelper.toConsumerEvent(record, getEventId(record));
+
+      Object bean = invocation.getThis();
+      Method method = invocation.getMethod();
       try {
-        if (InterceptorUtil.fireBeforeConsume(kafkaConsumerInterceptors, event)) {
+        if (InterceptorUtil.fireBeforeConsume(bean, method, kafkaConsumerInterceptors, event)) {
           return null; // cancel process
         } else {
           Object response = invocation.proceed();
-          InterceptorUtil.fireAfterSuccessConsume(kafkaConsumerInterceptors, event);
+          InterceptorUtil.fireAfterSuccessConsume(bean, method, kafkaConsumerInterceptors, event);
           return response;
         }
       } catch (Throwable throwable) {
-        InterceptorUtil.fireAfterErrorConsume(kafkaConsumerInterceptors, event, throwable);
+        InterceptorUtil.fireAfterErrorConsume(bean, method, kafkaConsumerInterceptors, event, throwable);
         throw throwable;
       }
     } else {

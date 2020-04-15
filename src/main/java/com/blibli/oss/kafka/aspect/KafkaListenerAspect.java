@@ -27,11 +27,13 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 
@@ -67,19 +69,22 @@ public class KafkaListenerAspect implements ApplicationContextAware, Initializin
 
   @Around(value = "@annotation(org.springframework.kafka.annotation.KafkaListener)")
   public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
-    if (isConsumerRecordArgument(joinPoint)) {
+    if (isConsumerRecordArgument(joinPoint) && joinPoint.getSignature() instanceof MethodSignature) {
       ConsumerRecord<String, String> record = getConsumerRecord(joinPoint);
       ConsumerEvent event = KafkaHelper.toConsumerEvent(record, getEventId(record));
+
+      Object bean = joinPoint.getTarget();
+      Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
       try {
-        if (InterceptorUtil.fireBeforeConsume(kafkaConsumerInterceptors, event)) {
+        if (InterceptorUtil.fireBeforeConsume(bean, method, kafkaConsumerInterceptors, event)) {
           return null; // cancel process
         } else {
           Object response = joinPoint.proceed(joinPoint.getArgs());
-          InterceptorUtil.fireAfterSuccessConsume(kafkaConsumerInterceptors, event);
+          InterceptorUtil.fireAfterSuccessConsume(bean, method, kafkaConsumerInterceptors, event);
           return response;
         }
       } catch (Throwable throwable) {
-        InterceptorUtil.fireAfterErrorConsume(kafkaConsumerInterceptors, event, throwable);
+        InterceptorUtil.fireAfterErrorConsume(bean, method, kafkaConsumerInterceptors, event, throwable);
         throw throwable;
       }
     } else {

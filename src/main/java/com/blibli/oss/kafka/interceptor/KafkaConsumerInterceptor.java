@@ -19,10 +19,23 @@ package com.blibli.oss.kafka.interceptor;
 import com.blibli.oss.kafka.interceptor.events.ConsumerEvent;
 import org.springframework.core.Ordered;
 
+import java.lang.reflect.Method;
+
 /**
  * @author Eko Kurniawan Khannedy
  */
 public interface KafkaConsumerInterceptor extends Ordered {
+
+  /**
+   * Check is this interceptor support for given bean and method?
+   *
+   * @param bean   spring bean
+   * @param method method
+   * @return true if support, false if not
+   */
+  default boolean isSupport(Object bean, Method method) {
+    return true;
+  }
 
   /**
    * Invoked before consume message, if it return <code>true</code>, it will break the process.
