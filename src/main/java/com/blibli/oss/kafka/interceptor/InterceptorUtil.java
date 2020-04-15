@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.OrderComparator;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,11 +18,13 @@ import java.util.Map;
 @Slf4j
 public class InterceptorUtil {
 
-  public static boolean fireBeforeConsume(List<KafkaConsumerInterceptor> kafkaConsumerInterceptors, ConsumerEvent event) {
+  public static boolean fireBeforeConsume(Object bean, Method method, List<KafkaConsumerInterceptor> kafkaConsumerInterceptors, ConsumerEvent event) {
     for (KafkaConsumerInterceptor interceptor : kafkaConsumerInterceptors) {
       try {
-        if (interceptor.beforeConsume(event)) {
-          return true;
+        if (interceptor.isSupport(bean, method)) {
+          if (interceptor.beforeConsume(event)) {
+            return true;
+          }
         }
       } catch (Throwable throwable) {
         log.error("Error while invoke interceptor", throwable);
@@ -30,20 +33,24 @@ public class InterceptorUtil {
     return false;
   }
 
-  public static void fireAfterSuccessConsume(List<KafkaConsumerInterceptor> kafkaConsumerInterceptors, ConsumerEvent event) {
+  public static void fireAfterSuccessConsume(Object bean, Method method, List<KafkaConsumerInterceptor> kafkaConsumerInterceptors, ConsumerEvent event) {
     for (KafkaConsumerInterceptor interceptor : kafkaConsumerInterceptors) {
       try {
-        interceptor.afterSuccessConsume(event);
+        if (interceptor.isSupport(bean, method)) {
+          interceptor.afterSuccessConsume(event);
+        }
       } catch (Throwable throwable) {
         log.error("Error while invoke interceptor", throwable);
       }
     }
   }
 
-  public static void fireAfterErrorConsume(List<KafkaConsumerInterceptor> kafkaConsumerInterceptors, ConsumerEvent event, Throwable throwable) {
+  public static void fireAfterErrorConsume(Object bean, Method method, List<KafkaConsumerInterceptor> kafkaConsumerInterceptors, ConsumerEvent event, Throwable throwable) {
     for (KafkaConsumerInterceptor interceptor : kafkaConsumerInterceptors) {
       try {
-        interceptor.afterFailedConsume(event, throwable);
+        if (interceptor.isSupport(bean, method)) {
+          interceptor.afterFailedConsume(event, throwable);
+        }
       } catch (Throwable e) {
         log.error("Error while invoke interceptor", e);
       }
